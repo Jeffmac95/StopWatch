@@ -33,7 +33,7 @@ public class StopWatch implements ActionListener {
     JButton getMinutesButton = new JButton("Get Minutes");
     JButton insertTimeButton = new JButton("Insert Time");
     JTextField textField = new JTextField("");
-    JButton searchDateButton = new JButton("Search");
+    JButton searchIdButton = new JButton("Search");
     JButton getAllTimesButton = new JButton("Get all times");
 
     public StopWatch() {
@@ -49,7 +49,7 @@ public class StopWatch implements ActionListener {
         getMinutesButton.setBounds(Main.FRAME_WIDTH / 2 - 100, 450, 125, 50);
         insertTimeButton.setBounds(Main.FRAME_WIDTH / 2 - 100, 550, 125, 50);
         textField.setBounds(Main.FRAME_WIDTH / 2 - 150, 650, 125, 25);
-        searchDateButton.setBounds(Main.FRAME_WIDTH / 2 + 50, 650, 125, 25);
+        searchIdButton.setBounds(Main.FRAME_WIDTH / 2 + 50, 650, 125, 25);
         getAllTimesButton.setBounds(Main.FRAME_WIDTH / 2 - 50, 700, 125, 50);
 
         startButton.addActionListener(this);
@@ -66,7 +66,7 @@ public class StopWatch implements ActionListener {
         panel.add(getMinutesButton);
         panel.add(insertTimeButton);
         panel.add(textField);
-        panel.add(searchDateButton);
+        panel.add(searchIdButton);
         panel.add(getAllTimesButton);
         frame.add(panel);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -89,6 +89,8 @@ public class StopWatch implements ActionListener {
             getMinutes();
         } else if (e.getSource() == insertTimeButton) {
             insert(seconds);
+        } else if (e.getSource() == searchIdButton) {
+            readById();
         } else if (e.getSource() == getAllTimesButton) {
             read();
         }
@@ -104,7 +106,7 @@ public class StopWatch implements ActionListener {
     }
 
     public void reset() {
-        timer.restart();
+        timer.stop();
         seconds = 0;
         elapsedTime = 0;
         seconds_string = String.format("%03d", seconds);
@@ -132,7 +134,7 @@ public class StopWatch implements ActionListener {
 
 
         try (var conn = DriverManager.getConnection(url)) {
-            System.out.println("connection to SQLite good.");
+            System.out.println("connection to SQLite success.");
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -141,17 +143,21 @@ public class StopWatch implements ActionListener {
     public void insert(int seconds){
         var url = "jdbc:sqlite:C:/Users/jeff_/SQLite/db/stopwatch.db";
         String sql = "INSERT INTO times(seconds) VALUES (?)";
-        try (var conn = DriverManager.getConnection(url)) {
-            var pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, seconds);
-            pstmt.executeUpdate();
-            System.out.println("Time inserted.");
-        } catch (SQLException e) {
-            System.out.println("Insertion failed." + e.getMessage());
+        if (seconds > 0) {
+            try (var conn = DriverManager.getConnection(url)) {
+                var pstmt = conn.prepareStatement(sql);
+                pstmt.setInt(1, seconds);
+                pstmt.executeUpdate();
+                System.out.println("Time inserted.");
+            } catch (SQLException e) {
+                System.out.println("Insertion failed." + e.getMessage());
+            }
+            seconds = 0;
+            seconds_string = String.format("%03d", seconds);
+            label.setText(seconds_string);
+        } else {
+            System.out.println("not inserted time was < 0");
         }
-        seconds = 0;
-        seconds_string = String.format("%03d", seconds);
-        label.setText(seconds_string);
     }
 
     public void read() {
@@ -163,12 +169,39 @@ public class StopWatch implements ActionListener {
             var rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
-                System.out.printf("id: %d, seconds: %d, date: %s ",
+                System.out.printf("id: %d, seconds: %d, date: %s \n",
                         rs.getInt("id"),
                         rs.getInt("seconds"),
                         rs.getString("created_at")
                         );
             }
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void readById() {
+        var url = "jdbc:sqlite:C:/Users/jeff_/SQLite/db/stopwatch.db";
+        var sql = "SELECT seconds FROM times WHERE id = ?";
+        int id;
+
+        try {
+            id = Integer.parseInt(textField.getText());
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid input. Enter integer." + e.getMessage());
+            return;
+        }
+
+        try (var conn = DriverManager.getConnection(url);
+             var pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);
+            var rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                int seconds = rs.getInt("seconds");
+                System.out.printf("%d seconds coded that day.", seconds);
+            }
+
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
