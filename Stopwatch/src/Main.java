@@ -1,5 +1,3 @@
-import javax.swing.ImageIcon;
-
 public class Main {
 
     public static final int FRAME_WIDTH = 600;

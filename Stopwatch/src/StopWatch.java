@@ -1,6 +1,3 @@
-// TODO: action listener for insert seconds.
-
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -33,7 +30,8 @@ public class StopWatch implements ActionListener {
     JButton getMinutesButton = new JButton("Get Minutes");
     JButton insertTimeButton = new JButton("Insert Time");
     JTextField textField = new JTextField("");
-    JButton searchIdButton = new JButton("Search");
+    JButton searchIdButton = new JButton("Search by ID");
+    JButton searchByDateButton = new JButton("Search by date");
     JButton getAllTimesButton = new JButton("Get all times");
 
     public StopWatch() {
@@ -48,8 +46,9 @@ public class StopWatch implements ActionListener {
         resetButton.setBounds(Main.FRAME_WIDTH / 2 + 150, 50, 100, 50);
         getMinutesButton.setBounds(Main.FRAME_WIDTH / 2 - 100, 450, 125, 50);
         insertTimeButton.setBounds(Main.FRAME_WIDTH / 2 - 100, 550, 125, 50);
-        textField.setBounds(Main.FRAME_WIDTH / 2 - 150, 650, 125, 25);
-        searchIdButton.setBounds(Main.FRAME_WIDTH / 2 + 50, 650, 125, 25);
+        textField.setBounds(Main.FRAME_WIDTH / 2 - 250, 650, 125, 25);
+        searchIdButton.setBounds(Main.FRAME_WIDTH / 2 - 50, 650, 125, 25);
+        searchByDateButton.setBounds(Main.FRAME_WIDTH / 2 + 150,650 ,125, 25);
         getAllTimesButton.setBounds(Main.FRAME_WIDTH / 2 - 50, 700, 125, 50);
 
         startButton.addActionListener(this);
@@ -57,6 +56,8 @@ public class StopWatch implements ActionListener {
         resetButton.addActionListener(this);
         getMinutesButton.addActionListener(this);
         insertTimeButton.addActionListener(this);
+        searchIdButton.addActionListener(this);
+        searchByDateButton.addActionListener(this);
         getAllTimesButton.addActionListener(this);
 
         panel.add(startButton);
@@ -67,6 +68,7 @@ public class StopWatch implements ActionListener {
         panel.add(insertTimeButton);
         panel.add(textField);
         panel.add(searchIdButton);
+        panel.add(searchByDateButton);
         panel.add(getAllTimesButton);
         frame.add(panel);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -91,6 +93,8 @@ public class StopWatch implements ActionListener {
             insert(seconds);
         } else if (e.getSource() == searchIdButton) {
             readById();
+        } else if (e.getSource() == searchByDateButton) {
+            readByDate();
         } else if (e.getSource() == getAllTimesButton) {
             read();
         }
@@ -152,9 +156,6 @@ public class StopWatch implements ActionListener {
             } catch (SQLException e) {
                 System.out.println("Insertion failed." + e.getMessage());
             }
-            seconds = 0;
-            seconds_string = String.format("%03d", seconds);
-            label.setText(seconds_string);
         } else {
             System.out.println("not inserted time was < 0");
         }
@@ -182,7 +183,7 @@ public class StopWatch implements ActionListener {
 
     public void readById() {
         var url = "jdbc:sqlite:C:/Users/jeff_/SQLite/db/stopwatch.db";
-        var sql = "SELECT seconds FROM times WHERE id = ?";
+        var sql = "SELECT seconds FROM times WHERE id = (?)";
         int id;
 
         try {
@@ -199,9 +200,31 @@ public class StopWatch implements ActionListener {
 
             while (rs.next()) {
                 int seconds = rs.getInt("seconds");
-                System.out.printf("%d seconds coded that day.", seconds);
+                System.out.printf("%d seconds coded that day.\n", seconds);
             }
 
+        } catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void readByDate() {
+        var url = "jdbc:sqlite:C:/Users/jeff_/SQLite/db/stopwatch.db";
+        var sql = "SELECT seconds FROM times WHERE created_at = ?";
+        String date = textField.getText().trim();
+
+        try (var conn = DriverManager.getConnection(url);
+             var pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, date);
+
+            var rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+
+                int seconds = rs.getInt("seconds");
+                System.out.printf("%d seconds coded that day.\n", seconds);
+            }
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
